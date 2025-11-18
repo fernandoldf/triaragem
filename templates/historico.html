@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico de Atendimentos - Sistema de Triagem{% endblock %}
+
+{% block extra_css %}
+<style>
+    .historico-container {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        color: white;
+    }
+
+    thead th {
+        padding: 1.25rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    tbody tr {
+        border-bottom: 1px solid #e5e7eb;
+        transition: background 0.2s;
+    }
+
+    tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    tbody td {
+        padding: 1.25rem;
+        color: #4b5563;
+    }
+
+    .nome-paciente {
+        font-weight: 600;
+        color: #1e3a8a;
+    }
+
+    .historico-vazio {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #9ca3af;
+    }
+
+    .historico-vazio svg {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1rem;
+        opacity: 0.3;
+    }
+
+    .historico-vazio h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .info-card {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .info-card svg {
+        width: 48px;
+        height: 48px;
+        color: #1e40af;
+    }
+
+    .info-card-content h3 {
+        font-size: 1.25rem;
+        color: #1e3a8a;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-card-content p {
+        color: #475569;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Histórico de Atendimentos</h2>
+
+<div class="info-card">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <div class="info-card-content">
+        <h3>Total de Atendimentos</h3>
+        <p>{{ historico|length }} paciente(s) atendido(s)</p>
+    </div>
+</div>
+
+<div class="historico-container">
+    {% if historico %}
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Contato</th>
+                <th>Gravidade</th>
+                <th>Data</th>
+                <th>Hora de Atendimento</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for atendimento in historico %}
+            <tr>
+                <td class="nome-paciente">{{ atendimento.nome }}</td>
+                <td>{{ atendimento.contato }}</td>
+                <td>
+                    <span class="badge badge-{{ atendimento.prioridade }}">
+                        {{ atendimento.prioridade }}
+                    </span>
+                </td>
+                <td>{{ atendimento.data_atendimento }}</td>
+                <td>{{ atendimento.hora_atendimento }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="historico-vazio">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <h3>Nenhum atendimento registrado</h3>
+        <p>Os pacientes atendidos aparecerão aqui</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
