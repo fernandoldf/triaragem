@@ -80,6 +80,27 @@ class DoublyLinkedList:
                 return current.data
             current = current.next
         return None
+
+    def remove_by_cpf(self, cpf):
+        """Remove elemento cujo dicionário tem chave 'cpf' igual a `cpf`.
+        Retorna o dado removido ou None se não encontrado.
+        """
+        current = self.head
+        while current:
+            data = current.data
+            if isinstance(data, dict) and data.get('cpf') == cpf:
+                # remove node
+                if current == self.head:
+                    return self.remove_first()
+                if current == self.tail:
+                    return self.remove_last()
+
+                current.prev.next = current.next
+                current.next.prev = current.prev
+                self.size -= 1
+                return data
+            current = current.next
+        return None
     
     def to_list(self):
         """Converte DLL para lista Python"""

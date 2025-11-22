@@ -63,6 +63,19 @@
         flex: 1;
     }
 
+    .btn-sair{
+        background-color: #ff0000;  
+        color: white;
+        border-radius: 6px;
+        border: none;
+        margin-top: 0.5rem;  
+    }
+    .btn-sm {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.85rem;
+        border-radius: 6px;
+    }
+
     .paciente-nome {
         font-size: 2rem;
         font-weight: bold;
@@ -210,7 +223,6 @@
 {% block content %}
 <h2>Painel de Atendimento</h2>
 
-<!-- Paciente Atual -->
 <div class="painel-atual {% if paciente_atual %}{{ paciente_atual.prioridade }}{% endif %}">
     {% if paciente_atual %}
     <div class="paciente-info">
@@ -226,7 +238,7 @@
                 {{ paciente_atual.prioridade.upper() }}
             </span>
         </div>
-        
+
         <div class="paciente-detalhes">
             <div class="detalhe-item">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,7 +271,6 @@
     {% endif %}
 </div>
 
-<!-- Botões de Ação -->
 <div class="acoes">
     <button class="btn btn-primary" onclick="chamarProximo()" {% if not fila %}disabled{% endif %}>
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:20px;height:20px">
@@ -275,7 +286,6 @@
     </button>
 </div>
 
-<!-- Fila de Espera -->
 <div class="fila-container">
     <div class="fila-header">Fila de Espera ({{ fila|length }})</div>
     
@@ -286,6 +296,9 @@
             <div class="fila-numero {{ paciente.prioridade }}">{{ loop.index }}</div>
             <div class="fila-nome" title="{{ paciente.nome }}">{{ paciente.nome }}</div>
             <span class="badge badge-{{ paciente.prioridade }}">{{ paciente.prioridade }}</span>
+            <div class="sair-badge">
+                <button class="btn-sair btn-sm" onclick="sairFila('{{ paciente.cpf }}')">Sair da fila</button>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -296,46 +309,82 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 function chamarProximo() {
-    fetch('/chamar_proximo', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
+    fetch('/chamar_proximo', { method: 'POST', headers: { 'Content-Type': 'application/json' }})
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             location.reload();
         } else {
-            alert(data.message || 'Erro ao chamar próximo paciente');
+            Swal.fire({
+                icon: 'error',
+                title: 'Ops...',
+                text: data.message || 'Erro ao chamar próximo paciente'
+            });
         }
     })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao processar requisição');
+    .catch(() => {
+        Swal.fire({ icon:'error', title:'Erro', text: 'Erro ao processar requisição' });
     });
 }
 
 function voltarAnterior() {
-    fetch('/voltar_anterior', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
+    fetch('/voltar_anterior', { method: 'POST', headers: { 'Content-Type': 'application/json' }})
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             location.reload();
         } else {
-            alert(data.message || 'Erro ao voltar paciente');
+            Swal.fire({
+                icon: 'error',
+                title: 'Ops...',
+                text: data.message || 'Erro ao voltar paciente'
+            });
         }
     })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao processar requisição');
+    .catch(() => {
+        Swal.fire({ icon:'error', title:'Erro', text: 'Erro ao processar requisição' });
+    });
+}
+
+function sairFila(cpf) {
+    Swal.fire({
+        title: 'Remover da fila?',
+        text: "Este paciente será removido da fila de espera.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sim, remover',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/remover_paciente', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cpf: cpf })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Removido!',
+                        text: 'Paciente removido da fila.',
+                        confirmButtonColor: '#10b981'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({ icon:'error', title:'Erro', text: data.message || 'Erro ao remover paciente' });
+                }
+            })
+            .catch(() => {
+                Swal.fire({ icon:'error', title:'Erro', text:'Erro ao processar requisição' });
+            });
+        }
     });
 }
 </script>

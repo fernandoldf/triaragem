@@ -187,5 +187,67 @@ def api_status():
     })
 
 
+@app.route('/remover_paciente', methods=['POST'])
+def remover_paciente():
+    """Remove paciente da fila pelo CPF"""
+    try:        
+        cpf = request.json.get('cpf')
+        fila_atendimento.remove_by_cpf(cpf)
+        return jsonify({'success': True})   
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+
+
+# Rota para baixar histórico em CSV
+import csv
+from flask import Response
+
+@app.route('/historico/download')
+def download_historico():
+    historico_list = historico_atendimentos.get_history()
+    # Define colunas que aparecem na tabela
+    fieldnames = ['nome', 'contato', 'prioridade', 'data_atendimento', 'hora_atendimento']
+    def generate():
+        yield ','.join(fieldnames) + '\n'
+        for atendimento in historico_list:
+            row = [str(atendimento.get(col, '')) for col in fieldnames]
+            yield ','.join(row) + '\n'
+    return Response(generate(), mimetype='text/csv', headers={
+        'Content-Disposition': 'attachment; filename=historico.csv'
+    })
+
+
+@app.route('/historico/stats')
+def historico_stats():
+    """Retorna estatísticas simples do histórico: contagem por prioridade e top sintomas."""
+    historico_list = historico_atendimentos.get_history()
+
+    # Contagem por prioridade
+    prioridade_counts = {'emergência': 0, 'urgente': 0, 'normal': 0}
+
+    # Contagem de sintomas (string inteira como chave)
+    sintomas_counts = {}
+
+    for atendimento in historico_list:
+        p = atendimento.get('prioridade', 'normal')
+        if p not in prioridade_counts:
+            prioridade_counts[p] = 0
+        prioridade_counts[p] += 1
+
+        sint = atendimento.get('sintomas', '') or ''
+        sint = sint.strip()
+        if sint:
+            sintomas_counts[sint] = sintomas_counts.get(sint, 0) + 1
+
+    # Top sintomas (maiores contagens)
+    top_sintomas = sorted(sintomas_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    top_sintomas = [{'sintoma': s, 'count': c} for s, c in top_sintomas]
+
+    return jsonify({
+        'prioridade_counts': prioridade_counts,
+        'top_sintomas': top_sintomas
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
