@@ -3,7 +3,7 @@ from datetime import datetime
 from estrutura_dados import PriorityQueue, Stack
 
 app = Flask(__name__)
-app.secret_key = 'sua_chave_secreta_aqui_mude_em_producao'
+app.secret_key = 'JoaoAquiFoi10'
 
 # Instâncias globais (em produção, usar banco de dados)
 fila_atendimento = PriorityQueue()
