@@ -1,3 +1,4 @@
+import io
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 from datetime import datetime
 from estrutura_dados import PriorityQueue, Stack
@@ -206,17 +207,26 @@ from flask import Response
 @app.route('/historico/download')
 def download_historico():
     historico_list = historico_atendimentos.get_history()
-    # Define colunas que aparecem na tabela
+
+    # Defina apenas os campos que você realmente deseja incluir no CSV
     fieldnames = ['nome', 'contato', 'prioridade', 'data_atendimento', 'hora_atendimento']
+
     def generate():
-        yield ','.join(fieldnames) + '\n'
+        output = io.StringIO()  # Usamos StringIO para gerar o CSV na memória
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        
         for atendimento in historico_list:
-            row = [str(atendimento.get(col, '')) for col in fieldnames]
-            yield ','.join(row) + '\n'
+            # Filtrar os dados para manter apenas os campos que estão em fieldnames
+            filtered_data = {key: atendimento[key] for key in fieldnames}
+            writer.writerow(filtered_data)
+
+        output.seek(0)  # Volta para o início do arquivo na memória
+        return output.getvalue()
+
     return Response(generate(), mimetype='text/csv', headers={
         'Content-Disposition': 'attachment; filename=historico.csv'
     })
-
 
 @app.route('/historico/stats')
 def historico_stats():
