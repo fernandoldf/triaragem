@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from datetime import datetime
 from estrutura_dados import PriorityQueue, Stack
 
@@ -8,36 +8,16 @@ app.secret_key = 'JoaoAquiFoi10'
 # Instâncias globais (em produção, usar banco de dados)
 fila_atendimento = PriorityQueue()
 historico_atendimentos = Stack()
-
-def get_paciente_atual():
-    """Retorna paciente atual da sessão"""
-    return session.get('paciente_atual')
-
-def set_paciente_atual(paciente):
-    """Define paciente atual na sessão"""
-    if paciente:
-        session['paciente_atual'] = paciente
-    else:
-        session.pop('paciente_atual', None)
-
-def get_paciente_anterior():
-    """Retorna paciente anterior da sessão"""
-    return session.get('paciente_anterior')
-
-def set_paciente_anterior(paciente):
-    """Define paciente anterior na sessão"""
-    if paciente:
-        session['paciente_anterior'] = paciente
-    else:
-        session.pop('paciente_anterior', None)
+paciente_atual = None
+paciente_anterior = None
 
 
 
 @app.route('/')
 def index():
     """Tela principal - fila de atendimento"""
-    paciente_atual = get_paciente_atual()
-    paciente_anterior = get_paciente_anterior()
+    paciente_atual = historico_atendimentos.peek().data if historico_atendimentos.size > 0 else None
+    paciente_anterior = historico_atendimentos.peek().prev.data if historico_atendimentos.size > 1 else None
     fila = fila_atendimento.to_list()
     
     return render_template('index.html', 
@@ -54,8 +34,6 @@ def zerar():
     global fila_atendimento, historico_atendimentos
     fila_atendimento = PriorityQueue()
     historico_atendimentos = Stack()
-    set_paciente_atual(None)
-    set_paciente_anterior(None)
     return redirect(url_for('index'))
 
 @app.route('/historico')
@@ -109,9 +87,7 @@ def adicionar_paciente():
 def chamar_proximo():
     """Chama próximo paciente da fila"""
     try:
-        # Salvar paciente atual no histórico se existir
-        paciente_atual = get_paciente_atual()
-        
+
         # Pegar próximo da fila
         proximo = fila_atendimento.dequeue()
         
@@ -124,10 +100,6 @@ def chamar_proximo():
             }
             historico_atendimentos.push(atendimento)
             print('colocou no histórico:', atendimento)
-            set_paciente_anterior(paciente_atual)
-            print('anterior setado como:', paciente_atual)
-            set_paciente_atual(proximo)
-            print('atual setado como:', proximo)
             return jsonify({'success': True})
         else:
             return jsonify({'success': False, 'message': 'Fila vazia'}), 400
@@ -140,13 +112,11 @@ def chamar_proximo():
 def voltar_anterior():
     """Volta para o paciente anterior"""
     try:
-        paciente_anterior = get_paciente_anterior()
-        paciente_atual = get_paciente_atual()
+        paciente_anterior = historico_atendimentos.peek().prev.data if historico_atendimentos.size > 1 else None
+        paciente_atual = historico_atendimentos.peek().data if historico_atendimentos.size > 0 else None
 
         if not paciente_anterior and not paciente_atual:
             return jsonify({'success': False, 'message': 'Não há paciente anterior'}), 400
-        
-        paciente_atual = get_paciente_atual()
         
         # Retorna paciente atual para a fila
         if paciente_atual:
@@ -156,11 +126,6 @@ def voltar_anterior():
             print(paciente_atual)
         
         # Restaura paciente anterior
-        set_paciente_atual(paciente_anterior)
-        print('atual setado como:', paciente_anterior)
-
-        set_paciente_anterior(None if historico_atendimentos.size < 2 else historico_atendimentos.peek().prev.data)
-        print('anterior setado como:', None if historico_atendimentos.size < 2 else historico_atendimentos.peek())
         
         return jsonify({'success': True})
     
@@ -181,7 +146,7 @@ def api_fila():
 def api_status():
     """API para status geral do sistema"""
     return jsonify({
-        'paciente_atual': get_paciente_atual(),
+        'paciente_atual': historico_atendimentos.peek().data if historico_atendimentos.size > 0 else None,
         'total_fila': fila_atendimento.size,
         'total_historico': historico_atendimentos.size
     })
